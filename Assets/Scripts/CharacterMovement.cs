@@ -1,68 +1,92 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NUnit.Framework.Internal;
 using UnityEngine;
 
 public class CharacterMovement : MonoBehaviour
 {
+    
+    #region Properties
+    
     [SerializeField] private float speed = 10f;
-    [SerializeField] private float movementThreshold = 0.05f;
 
     private Animator _animator;
-    private CharacterController _characterController;
     private Rigidbody _rigidbody;
 
     private Vector3 _movement;
-
-    private Vector3 _lastPosition;
-    private static readonly int Speed = Animator.StringToHash("speed");
-    private static readonly int IsMoving = Animator.StringToHash("IsMoving");
+    private Vector3 _lastDirection;
+    private Quaternion _targetRotation;
+    
+    private static readonly int IsMoving = Animator.StringToHash("isMoving");
+    
+    #endregion
+    
+    #region Methods
 
     private void Awake()
     {
         _animator = GetComponent<Animator>();
-        _characterController = GetComponent<CharacterController>();
         _rigidbody = GetComponent<Rigidbody>();
-    }
-    
-    private void Start()
-    {
-        _lastPosition = transform.position;
     }
 
     private void Update()
     {
+        CaptureInput();
         CalculateMovement();
     }
 
     private void FixedUpdate()
     {
+        // Moves the rigid body to new position
         _rigidbody.Move(transform.position + _movement, Quaternion.identity);
+        
+        // Spherical linear interpolation to smoothly transition to new rotation angle
+        transform.rotation = Quaternion.Slerp(transform.rotation,_targetRotation,10f * Time.fixedDeltaTime);
     }
-
-    private void CalculateMovement()
+    
+    private void CaptureInput ()
     {
         var inputX = Input.GetAxis("Horizontal");
         var inputZ = Input.GetAxis("Vertical");
 
-        if (Mathf.Abs(inputX) <= Mathf.Epsilon && Mathf.Abs(inputZ) <= Mathf.Epsilon)
+        _movement = new Vector3(inputX, 0f, inputZ);
+    }
+
+    private void CalculateMovement()
+    {
+        if (Mathf.Abs(_movement.magnitude) <= Mathf.Epsilon)
         {
-            _rigidbody.velocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
-            _movement = Vector3.zero;
+            ForceStop();
             _animator.SetBool(IsMoving, false);
             return;
         }
         
-        _movement = new Vector3(inputX, 0f, inputZ).normalized * (speed * Time.deltaTime);
+        PerformMovement();
+        CalculateTargetRotation();
+    }
+
+    private void PerformMovement()
+    {
+        _lastDirection = _movement.normalized;
+        _movement = _movement.normalized * (speed * Time.deltaTime);
         _animator.SetBool(IsMoving, true);
     }
 
-    private float CalculateSpeed (Vector3 currentPosition)
+    private void ForceStop()
     {
-        var currentSpeed = (currentPosition - _lastPosition).magnitude / Time.deltaTime;
-        _lastPosition = currentPosition;
-        return currentSpeed;
+        // Zeroes the values to avoid erratic behavior with the character
+        _rigidbody.velocity = Vector3.zero;
+        _rigidbody.angularVelocity = Vector3.zero;
+        _movement = Vector3.zero;
     }
+
+    private void CalculateTargetRotation()
+    {
+        _targetRotation = Quaternion.LookRotation(_lastDirection);
+    }
+    
+    #endregion
+    
 }
