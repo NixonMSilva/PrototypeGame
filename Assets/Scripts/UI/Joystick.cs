@@ -11,8 +11,8 @@ namespace UI
         
         #region Properties
         
-        [SerializeField] private GameObject _joystickOuter;
-        [SerializeField] private GameObject _joystickInner;
+        [SerializeField] private GameObject joystickOuter;
+        [SerializeField] private GameObject joystickInner;
 
         private float _backgroundImageSizeX, _backgroundImageSizeY;
 
@@ -31,8 +31,8 @@ namespace UI
 
         private void Start()
         {
-            _outerRectTransform = _joystickOuter.GetComponent<RectTransform>();
-            _innerRectTransform = _joystickInner.GetComponent<RectTransform>();
+            _outerRectTransform = joystickOuter.GetComponent<RectTransform>();
+            _innerRectTransform = joystickInner.GetComponent<RectTransform>();
 
             _backgroundImageSizeX = _outerRectTransform.sizeDelta.x;
             _backgroundImageSizeY = _outerRectTransform.sizeDelta.y;
@@ -40,19 +40,19 @@ namespace UI
         
         public void OnDrag(PointerEventData eventData)
         {
-            Vector2 tappedOint;
+            Vector2 tappedOnIt;
 
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     _outerRectTransform, 
                     eventData.position, 
                     eventData.pressEventCamera, 
-                    out tappedOint)) 
+                    out tappedOnIt)) 
                 return;
             
-            tappedOint.x = (tappedOint.x / (_backgroundImageSizeX * _offsetFactorWithBgSize));
-            tappedOint.y = (tappedOint.y / (_backgroundImageSizeY * _offsetFactorWithBgSize));
+            tappedOnIt.x = (tappedOnIt.x / (_backgroundImageSizeX * _offsetFactorWithBgSize));
+            tappedOnIt.y = (tappedOnIt.y / (_backgroundImageSizeY * _offsetFactorWithBgSize));
 
-            InputDirection = new Vector3(tappedOint.x, tappedOint.y);
+            InputDirection = new Vector3(tappedOnIt.x, tappedOnIt.y);
 
             InputDirection = InputDirection.magnitude > 1 ? InputDirection.normalized : InputDirection;
 
