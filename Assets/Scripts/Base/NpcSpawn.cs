@@ -1,4 +1,8 @@
+using System;
 using UnityEngine;
+
+using Character;
+using Random = UnityEngine.Random;
 
 namespace Base
 {
@@ -22,6 +26,16 @@ namespace Base
         private void Start()
         {
             _spawnNextCountdown = spawnFrequency;
+        }
+
+        private void OnEnable()
+        {
+            Punch.OnNpcPunched += DecreaseNpcCount;
+        }
+
+        private void OnDisable()
+        {
+            Punch.OnNpcPunched -= DecreaseNpcCount;
         }
 
         private void Update()

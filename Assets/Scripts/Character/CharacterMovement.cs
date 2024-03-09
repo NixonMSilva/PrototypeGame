@@ -11,6 +11,8 @@ namespace Character
     
         [SerializeField] private float speed = 10f;
 
+        private float originalSpeed;
+
         private Animator _animator;
         private Rigidbody _rigidbody;
 
@@ -28,6 +30,8 @@ namespace Character
         {
             _animator = GetComponent<Animator>();
             _rigidbody = GetComponent<Rigidbody>();
+
+            originalSpeed = speed;
         }
 
         private void OnEnable()
@@ -43,11 +47,13 @@ namespace Character
         private void Update()
         {
             // CaptureInputKeyboard();
-            CalculateMovement();
+            //
         }
 
         private void FixedUpdate()
         {
+            CalculateMovement();
+            
             // Moves the rigid body to new position
             _rigidbody.Move(transform.position + _movement, Quaternion.identity);
         
@@ -85,7 +91,7 @@ namespace Character
         private void PerformMovement()
         {
             _lastDirection = _movement.normalized;
-            _movement = _movement.normalized * (speed * Time.deltaTime);
+            _movement = _movement.normalized * (speed * Time.fixedDeltaTime);
             _animator.SetBool(IsMoving, true);
         }
 
@@ -100,6 +106,11 @@ namespace Character
         private void CalculateTargetRotation()
         {
             _targetRotation = Quaternion.LookRotation(_lastDirection);
+        }
+
+        public void ChangeSpeed(float percentageChange)
+        {
+            speed = originalSpeed * (1f + percentageChange);
         }
     
         #endregion
