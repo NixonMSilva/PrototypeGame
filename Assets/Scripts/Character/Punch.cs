@@ -14,6 +14,8 @@ namespace Character
 
         public static Action OnNpcPunched;
 
+        private Vector3 _punchBox = new Vector3(1.5f, 1.5f, 1.5f);
+
         private void Awake()
         {
             _animator = GetComponent<Animator>();
@@ -22,9 +24,10 @@ namespace Character
         
         public void PerformPunch()
         {
-            var results = new RaycastHit[1];
-            Debug.DrawRay(punchOrigin.position, transform.forward * 1.25f, Color.magenta, 1f);
-            if (Physics.RaycastNonAlloc(punchOrigin.position, transform.forward, results, 1.25f, npcMask) == 0)
+            var results = new Collider[1];
+            var size = Physics.OverlapSphereNonAlloc(punchOrigin.position, 1f, results, npcMask);
+
+            if (size <= 0)
             {
                 return;
             }
@@ -33,12 +36,18 @@ namespace Character
                 if (_stack.GetStackFull())
                     return;
                 
-                Destroy(results[0].collider.gameObject);
+                Destroy(results[0].gameObject);
                 _stack.AddNpc();
                 OnNpcPunched?.Invoke();
             }
             
             
+        }
+
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(punchOrigin.position, 1f);
         }
     }
 }

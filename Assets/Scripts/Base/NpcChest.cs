@@ -20,9 +20,6 @@ namespace Base
 
                 npcStatus.HasBeenProcessed = true;
                 OnNpcEnter?.Invoke(npcStatus.npcValue);
-                
-                // Set NPC de-spawn timeout
-                Destroy(other.gameObject, 5f);
             }
         }
     }

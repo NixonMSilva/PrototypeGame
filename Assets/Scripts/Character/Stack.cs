@@ -39,26 +39,25 @@ namespace Character
         {
             for (var i = 0; i < stackLimit; ++i)
             {
-                var newAnchorPosition = new Vector3(stackBaseAnchor.position.x ,
-                    stackBaseAnchor.position.y + (stackDistanceY * i), stackBaseAnchor.position.z);
-                var newAnchor = Instantiate(stackAnchorPrefab, newAnchorPosition, Quaternion.identity, stackBaseAnchor);
-                _stackAnchors.Add(newAnchor);
+                AddAnchor(i);
             }
         }
 
         public void UpdateStackLimit(int delta)
         {
+            AddAnchor(stackLimit);
+            CalculateSpeedChange();
             stackLimit += delta;
-            
-            // Clear previous anchors
-            foreach (var anchor in _stackAnchors)
-            {
-                Destroy(anchor);
-            }
-            _stackAnchors.Clear();
-            
-            // Reinitialize anchors
-            InitializeStackAnchors();
+        }
+
+        private void AddAnchor(int offset)
+        {
+            var newAnchorPosition = new Vector3(stackBaseAnchor.position.x,
+                stackBaseAnchor.position.y + (stackDistanceY * offset), stackBaseAnchor.position.z);
+            var newAnchor = Instantiate(stackAnchorPrefab, newAnchorPosition, Quaternion.identity, stackBaseAnchor);
+            newAnchor.transform.localPosition = new Vector3(0f, newAnchor.transform.localPosition.y, 0f);
+            newAnchor.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            _stackAnchors.Add(newAnchor);
         }
 
         private GameObject GetNpcAtIndex(int index)
@@ -139,6 +138,12 @@ namespace Character
 
             // Decrease NPC count
             stackedNpcCount--;
+            
+            // Update speed accordingly
+            CalculateSpeedChange();
+            
+            // Set thrown NPC de-spawn timeout
+            Destroy(newThrowNpc.gameObject, 5f);
         }
 
         public bool GetStackFull() => (stackedNpcCount >= stackLimit);
