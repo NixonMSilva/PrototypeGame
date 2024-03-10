@@ -53,14 +53,14 @@ namespace Character
         private void FixedUpdate()
         {
             CalculateMovement();
-            
+
             // Moves the rigid body to new position
             _rigidbody.Move(transform.position + _movement, Quaternion.identity);
-        
-            // Spherical linear interpolation to smoothly transition to new rotation angle
-            transform.rotation = Quaternion.Slerp(transform.rotation,_targetRotation,10f * Time.fixedDeltaTime);
+
+            CalculateTargetRotation();
+            _rigidbody.rotation = Quaternion.Slerp(transform.rotation,_targetRotation,8f * Time.fixedDeltaTime);
         }
-    
+
         // OBSOLETE
         private void CaptureInputKeyboard ()
         {
@@ -85,7 +85,6 @@ namespace Character
             }
         
             PerformMovement();
-            CalculateTargetRotation();
         }
 
         private void PerformMovement()
