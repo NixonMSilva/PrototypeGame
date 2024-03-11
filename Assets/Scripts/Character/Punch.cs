@@ -15,6 +15,7 @@ namespace Character
         public static Action OnNpcPunched;
 
         private Vector3 _punchBox = new Vector3(1.5f, 1.5f, 1.5f);
+        private static readonly int PunchTrigger = Animator.StringToHash("punch");
 
         private void Awake()
         {
@@ -26,6 +27,8 @@ namespace Character
         {
             var results = new Collider[1];
             var size = Physics.OverlapSphereNonAlloc(punchOrigin.position, 1f, results, npcMask);
+            
+            _animator.SetTrigger(PunchTrigger);
 
             if (size <= 0)
             {
