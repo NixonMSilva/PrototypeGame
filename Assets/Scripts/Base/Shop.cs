@@ -37,6 +37,10 @@ namespace Base
 
         public void PurchaseStackUpgrade()
         {
+            if (!scoreReference.HasEnoughScore(stackUpgradeCost))
+            {
+                return;
+            }
             stackReference.UpdateStackLimit(1);
             OnPurchase?.Invoke(-stackUpgradeCost);
         }
