@@ -258,7 +258,7 @@ namespace Character
 
             // Adds throw force to the NPC
             var newThrowNpc = Instantiate(throwNpcPrefab, punchAnchor.position + transform.forward, Quaternion.identity);
-            var rigidBody = newThrowNpc.GetComponent<Rigidbody>();
+            var rigidBody = newThrowNpc.GetComponentInChildren<Rigidbody>();
             rigidBody.constraints = RigidbodyConstraints.None;
             rigidBody.velocity = Vector3.zero;
             rigidBody.AddForce((transform.forward + Vector3.up) * 100f, ForceMode.Impulse);

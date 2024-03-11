@@ -11,7 +11,7 @@ namespace Base
         {
             if (other.gameObject.CompareTag("ThrownNPC"))
             {
-                var npcStatus = other.gameObject.GetComponent<NpcStatus>();
+                var npcStatus = other.gameObject.transform.parent.GetComponent<NpcStatus>();
                 if (npcStatus.HasBeenProcessed)
                 {
                     // Prevents double registration of score for an NPC
