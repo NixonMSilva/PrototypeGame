@@ -42834,7 +42834,7 @@ MonoBehaviour:
   stackAnchorPrefab: {fileID: 691578073407638369, guid: ec00f5fdf49cf72469e44d569f4068e3, type: 3}
   stackNpcPrefab: {fileID: 3036823780420877066, guid: 555e17bf04cb9424e982fea88c2a69af, type: 3}
   throwNpcPrefab: {fileID: 3036823780420877066, guid: dca2c7d51b5bd2c49874e3d7c2cf642e, type: 3}
-  stackLimit: 5
+  stackLimit: 7
   stackDistanceY: 0.6
 --- !u!1 &1578036990
 GameObject:

@@ -31,7 +31,7 @@ namespace Character
 
         private float[] _squareRootCache = new float[1000];
 
-        private float _inertiaOffsetHorizontal = 2f;
+        private float _inertiaOffsetHorizontal = 1f;
 
         private Vector3 _currentPosition;
         private Vector3 _lastPosition;
@@ -108,6 +108,9 @@ namespace Character
             
             ApplyAnchorInertia();
             
+            // Inertia of the stack items towards the character's movement, items on top have greater offset
+            _secondarySpeed = Mathf.Lerp(_secondarySpeed, _currentVelocity.magnitude, 7.5f * Time.fixedDeltaTime);
+            
             ApplyItemHorizontalInertia();
             ApplyItemRotationalInertia();
             
@@ -123,6 +126,8 @@ namespace Character
 
         private void ApplyAnchorInertia()
         {
+            // Inertia of the anchor towards the character's rotation
+            
             var angle = Vector3.SignedAngle(_lastForward, _currentForward, transform.up);
             
             _targetRotation = _initialRotation + angle;
@@ -133,28 +138,17 @@ namespace Character
 
             stackBaseAnchor.localRotation = Quaternion.Euler(currentRotation.eulerAngles.x, newYRotation,
                 currentRotation.eulerAngles.z);
-            /*
-            Vector3 targetRotation = (transform.localPosition - _currentVelocity) * 0.05f;
-            targetPosition.y = transform.localPosition.y;
-            
-            Debug.Log(targetPosition);
-
-            stackBaseAnchor.localRotation =
-                Quaternion.Slerp();
-            */
         }
 
         private void ApplyItemHorizontalInertia()
         {
-            _secondarySpeed = Mathf.Lerp(_secondarySpeed, _currentVelocity.magnitude, 7.5f * Time.fixedDeltaTime);
-
             // Ignore first element
             for (var i = 1; i < _stackNpcs.Count; ++i)
             {
                 var squareRootOfI = i < 1000 ? _squareRootCache[i] : Mathf.Sqrt(i);
                 
                 var t = ((float)i / (float)_stackNpcs.Count) * Time.fixedDeltaTime;
-                var newHorizontalPosition = Mathf.Lerp(0f, _inertiaOffsetHorizontal * _secondarySpeed * squareRootOfI, t);
+                var newHorizontalPosition = Mathf.Lerp(0f, _inertiaOffsetHorizontal * _secondarySpeed * squareRootOfI,  i * Time.fixedDeltaTime);
                 
                 var currentTransform = _stackAnchors[i].transform;
                 var localPosition = currentTransform.localPosition;
@@ -164,7 +158,22 @@ namespace Character
 
         private void ApplyItemRotationalInertia()
         {
-            
+            for (var i = 1; i < _stackNpcs.Count; ++i)
+            {
+                var slopeAtPointI = CalculateSlopeAtX(i);
+                var slopeAngleDegree = Mathf.Rad2Deg * Mathf.Atan(slopeAtPointI);
+
+                var currentItem = _stackAnchors[i].transform;
+                var currentItemRotation = currentItem.localRotation.eulerAngles;
+                var t = 0.25f * i * _secondarySpeed * Time.fixedDeltaTime;
+                var targetAngle = Mathf.Lerp(0f, 45f, t);
+                currentItem.localRotation = Quaternion.Euler(targetAngle, currentItemRotation.y, currentItemRotation.z);
+            }
+        }
+
+        private float CalculateSlopeAtX (int x)
+        {
+            return x < 1000 ? 1f / (2f * _squareRootCache[x]) : 1f / (2f * Mathf.Sqrt(x));
         }
 
         private GameObject GetNpcAtIndex(int index)
