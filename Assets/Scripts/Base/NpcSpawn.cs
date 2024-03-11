@@ -30,12 +30,12 @@ namespace Base
 
         private void OnEnable()
         {
-            Punch.OnNpcPunched += DecreaseNpcCount;
+            Grab.OnNpcGrabbed += DecreaseNpcCount;
         }
 
         private void OnDisable()
         {
-            Punch.OnNpcPunched -= DecreaseNpcCount;
+            Grab.OnNpcGrabbed -= DecreaseNpcCount;
         }
 
         private void Update()

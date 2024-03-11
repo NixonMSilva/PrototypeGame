@@ -261,7 +261,7 @@ namespace Character
             var rigidBody = newThrowNpc.GetComponent<Rigidbody>();
             rigidBody.constraints = RigidbodyConstraints.None;
             rigidBody.velocity = Vector3.zero;
-            rigidBody.AddForce((transform.forward + transform.up) * 5f, ForceMode.Impulse);
+            rigidBody.AddForce((transform.forward + Vector3.up) * 100f, ForceMode.Impulse);
 
             // Decrease NPC count
             _stackedNpcCount--;

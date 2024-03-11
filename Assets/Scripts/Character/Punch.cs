@@ -1,4 +1,5 @@
 ﻿using System;
+using Base;
 using UnityEngine;
 
 namespace Character
@@ -28,13 +29,16 @@ namespace Character
             _animator = GetComponent<Animator>();
             _stack = GetComponent<Stack>();
         }
+
+        public void StartPunch()
+        {
+            _animator.SetTrigger(PunchTrigger);
+        }
         
         public void PerformPunch()
         {
             var results = new Collider[1];
             var size = Physics.OverlapSphereNonAlloc(punchOrigin.position, 1f, results, npcMask);
-            
-            _animator.SetTrigger(PunchTrigger);
 
             if (size <= 0)
             {
@@ -43,12 +47,10 @@ namespace Character
 
             if (_stack.GetStackFull())
                 return;
-                
-            Destroy(results[0].gameObject);
-            _stack.AddNpc();
-            OnNpcPunched?.Invoke();
 
-
+            // Enable ragdolling and update status
+            results[0].transform.parent.GetComponent<Animator>().enabled = false;
+            results[0].transform.parent.GetComponent<NpcStatus>().isDowned = true;
         }
 
         private void OnDrawGizmos()
