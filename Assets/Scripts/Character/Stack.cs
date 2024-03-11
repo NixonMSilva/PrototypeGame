@@ -1,7 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Numerics;
 using Base;
+using Unity.Android.Gradle;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Character
 {
@@ -18,12 +22,30 @@ namespace Character
 
         [SerializeField] private float stackDistanceY = 1f;
 
-        private int stackedNpcCount = 0;
+        private int _stackedNpcCount = 0;
 
         private CharacterMovement _characterMovement;
 
         private List<GameObject> _stackAnchors = new List<GameObject>();
         private List<GameObject> _stackNpcs = new List<GameObject>();
+
+        private float[] _squareRootCache = new float[1000];
+
+        private float _inertiaOffsetHorizontal = 2f;
+
+        private Vector3 _currentPosition;
+        private Vector3 _lastPosition;
+
+        private Vector3 _currentVelocity;
+        private Vector3 _lastVelocity;
+        
+        private Vector3 _currentForward;
+        private Vector3 _lastForward;
+        
+        private float _initialRotation;
+        private float _targetRotation;
+
+        private float _secondarySpeed;
 
         private void Awake()
         {
@@ -33,6 +55,23 @@ namespace Character
         private void Start()
         {
             InitializeStackAnchors();
+            FillSquareRootCache();
+            
+            _lastPosition = transform.position;
+            _currentPosition = transform.position;
+            _currentVelocity = Vector3.zero;
+            _currentForward = transform.forward;
+
+            _initialRotation = transform.localRotation.y;
+        }
+
+        private void FillSquareRootCache()
+        {
+            // Caches the square root to use it on the inertia calculation
+            for (var i = 0; i < _squareRootCache.Length; ++i)
+            {
+                _squareRootCache[i] = Mathf.Sqrt(i);
+            }
         }
 
         private void InitializeStackAnchors()
@@ -60,6 +99,74 @@ namespace Character
             _stackAnchors.Add(newAnchor);
         }
 
+        private void FixedUpdate()
+        {
+            _currentPosition = transform.position;
+            _currentForward = transform.forward;
+            
+            CalculateVelocity();
+            
+            ApplyAnchorInertia();
+            
+            ApplyItemHorizontalInertia();
+            ApplyItemRotationalInertia();
+            
+            _lastPosition = _currentPosition;
+            _lastForward = _currentForward;
+            _lastVelocity = _currentVelocity;
+        }
+
+        private void CalculateVelocity()
+        {
+            _currentVelocity = (_currentPosition - _lastPosition) / Time.fixedDeltaTime;
+        }
+
+        private void ApplyAnchorInertia()
+        {
+            var angle = Vector3.SignedAngle(_lastForward, _currentForward, transform.up);
+            
+            _targetRotation = _initialRotation + angle;
+
+            var currentRotation = stackBaseAnchor.localRotation;
+            var currentYRotation = currentRotation.eulerAngles.y;
+            var newYRotation = Mathf.LerpAngle(currentYRotation, _targetRotation, Time.fixedDeltaTime * 5f);
+
+            stackBaseAnchor.localRotation = Quaternion.Euler(currentRotation.eulerAngles.x, newYRotation,
+                currentRotation.eulerAngles.z);
+            /*
+            Vector3 targetRotation = (transform.localPosition - _currentVelocity) * 0.05f;
+            targetPosition.y = transform.localPosition.y;
+            
+            Debug.Log(targetPosition);
+
+            stackBaseAnchor.localRotation =
+                Quaternion.Slerp();
+            */
+        }
+
+        private void ApplyItemHorizontalInertia()
+        {
+            _secondarySpeed = Mathf.Lerp(_secondarySpeed, _currentVelocity.magnitude, 7.5f * Time.fixedDeltaTime);
+
+            // Ignore first element
+            for (var i = 1; i < _stackNpcs.Count; ++i)
+            {
+                var squareRootOfI = i < 1000 ? _squareRootCache[i] : Mathf.Sqrt(i);
+                
+                var t = ((float)i / (float)_stackNpcs.Count) * Time.fixedDeltaTime;
+                var newHorizontalPosition = Mathf.Lerp(0f, _inertiaOffsetHorizontal * _secondarySpeed * squareRootOfI, t);
+                
+                var currentTransform = _stackAnchors[i].transform;
+                var localPosition = currentTransform.localPosition;
+                currentTransform.localPosition = new Vector3(localPosition.x, localPosition.y, -newHorizontalPosition);
+            }
+        }
+
+        private void ApplyItemRotationalInertia()
+        {
+            
+        }
+
         private GameObject GetNpcAtIndex(int index)
         {
             if (index < 0 || index >= _stackNpcs.Count)
@@ -84,40 +191,40 @@ namespace Character
 
         public void AddNpc()
         {
-            if (stackedNpcCount >= stackLimit)
+            if (_stackedNpcCount >= stackLimit)
             {
                 return;
             }
 
             var stackNpc = Instantiate(stackNpcPrefab,
-                _stackAnchors[stackedNpcCount].transform.position,
+                _stackAnchors[_stackedNpcCount].transform.position,
                 Quaternion.identity,
-                _stackAnchors[stackedNpcCount].transform);
+                _stackAnchors[_stackedNpcCount].transform);
             
             _stackNpcs.Add(stackNpc);
             stackNpc.transform.localPosition = Vector3.zero;
             stackNpc.transform.localRotation = Quaternion.Euler(-90f, 0f, -90f);
-            stackedNpcCount++;
+            _stackedNpcCount++;
 
             CalculateSpeedChange();
         }
 
         private void CalculateSpeedChange()
         {
-            var percentageChange = (stackedNpcCount * 1.0f / stackLimit * 1.0f) / 1.25f; // Can be reduced to up to 80%
+            var percentageChange = (_stackedNpcCount * 1.0f / stackLimit * 1.0f) / 1.25f; // Can be reduced to up to 80%
             _characterMovement.ChangeSpeed(-percentageChange);
         }
 
         public void ReleaseNpc()
         {
             // Ignore if there's no NPCs on the stack
-            if (stackedNpcCount <= 0)
+            if (_stackedNpcCount <= 0)
             {
                 return;
             }
             
             // Get the NPC at the top of the stack
-            var topNpc = GetNpcAtIndex(stackedNpcCount - 1);
+            var topNpc = GetNpcAtIndex(_stackedNpcCount - 1);
             
             // If there's no NPC return the function as a safety measure
             if (!topNpc)
@@ -126,7 +233,7 @@ namespace Character
             }
 
             // Remove the object from the top
-            RemoveNpcAtIndex(stackedNpcCount - 1);
+            RemoveNpcAtIndex(_stackedNpcCount - 1);
             Destroy(topNpc);
 
             // Adds throw force to the NPC
@@ -137,7 +244,7 @@ namespace Character
             rigidBody.AddForce((transform.forward + transform.up) * 5f, ForceMode.Impulse);
 
             // Decrease NPC count
-            stackedNpcCount--;
+            _stackedNpcCount--;
             
             // Update speed accordingly
             CalculateSpeedChange();
@@ -146,6 +253,6 @@ namespace Character
             Destroy(newThrowNpc.gameObject, 5f);
         }
 
-        public bool GetStackFull() => (stackedNpcCount >= stackLimit);
+        public bool GetStackFull() => (_stackedNpcCount >= stackLimit);
     }
 }

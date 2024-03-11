@@ -111,8 +111,10 @@ namespace Character
         {
             speed = originalSpeed * (1f + percentageChange);
         }
-    
+
+        public Vector3 GetSpeed() => _rigidbody.velocity;
+
         #endregion
-    
+
     }
 }
