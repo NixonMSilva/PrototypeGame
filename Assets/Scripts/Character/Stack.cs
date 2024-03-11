@@ -1,16 +1,15 @@
-﻿using System.Collections.Generic;
-using System.Numerics;
-using Base;
-using Unity.Android.Gradle;
+﻿using System;
+using System.Collections.Generic;
+
 using UnityEngine;
-using UnityEngine.UIElements;
-using Quaternion = UnityEngine.Quaternion;
-using Vector3 = UnityEngine.Vector3;
 
 namespace Character
 {
     public class Stack : MonoBehaviour
     {
+        
+        #region Properties
+        
         [SerializeField] private Transform stackBaseAnchor;
         [SerializeField] private Transform punchAnchor;
         
@@ -37,8 +36,8 @@ namespace Character
         private Vector3 _lastPosition;
 
         private Vector3 _currentVelocity;
-        private Vector3 _lastVelocity;
-        
+        private Vector3 _secondaryVelocity;
+
         private Vector3 _currentForward;
         private Vector3 _lastForward;
         
@@ -46,6 +45,17 @@ namespace Character
         private float _targetRotation;
 
         private float _secondarySpeed;
+        
+        #endregion
+        
+        #region Events
+
+        public static Action<int> OnStackChanged;
+        public static Action<int> OnStackLimitChanged;
+        
+        #endregion
+        
+        #region Methods
 
         private void Awake()
         {
@@ -63,6 +73,8 @@ namespace Character
             _currentForward = transform.forward;
 
             _initialRotation = transform.localRotation.y;
+            
+            OnStackLimitChanged?.Invoke(stackLimit);
         }
 
         private void FillSquareRootCache()
@@ -87,6 +99,7 @@ namespace Character
             AddAnchor(stackLimit);
             CalculateSpeedChange();
             stackLimit += delta;
+            OnStackLimitChanged?.Invoke(stackLimit);
         }
 
         private void AddAnchor(int offset)
@@ -105,6 +118,8 @@ namespace Character
             _currentForward = transform.forward;
             
             CalculateVelocity();
+
+            _secondaryVelocity = Vector3.Lerp(_secondaryVelocity, _currentVelocity, 7.5f * Time.fixedDeltaTime);
             
             ApplyAnchorInertia();
             
@@ -116,7 +131,6 @@ namespace Character
             
             _lastPosition = _currentPosition;
             _lastForward = _currentForward;
-            _lastVelocity = _currentVelocity;
         }
 
         private void CalculateVelocity()
@@ -145,14 +159,17 @@ namespace Character
             // Ignore first element
             for (var i = 1; i < _stackNpcs.Count; ++i)
             {
-                var squareRootOfI = i < 1000 ? _squareRootCache[i] : Mathf.Sqrt(i);
+                var a = _stackNpcs[i].transform.position;
+                var b = _stackNpcs[i - 1].transform.position + (_stackNpcs[i - 1].transform.right * 0.1f * _secondarySpeed);
+
+                Vector2 rateRange = new Vector2(0.8f,0.8f);
+                float rate = Mathf.Lerp(rateRange.x, rateRange.y, (float)i / (float)_stackNpcs.Count);
                 
-                var t = ((float)i / (float)_stackNpcs.Count) * Time.fixedDeltaTime;
-                var newHorizontalPosition = Mathf.Lerp(0f, _inertiaOffsetHorizontal * _secondarySpeed * squareRootOfI,  i * Time.fixedDeltaTime);
-                
+                var newPosition = Vector3.Lerp(a, b, rate);
+                newPosition.y = stackBaseAnchor.transform.position.y + (i * stackDistanceY);
+
                 var currentTransform = _stackAnchors[i].transform;
-                var localPosition = currentTransform.localPosition;
-                currentTransform.localPosition = new Vector3(localPosition.x, localPosition.y, -newHorizontalPosition);
+                currentTransform.position = newPosition;
             }
         }
 
@@ -160,20 +177,12 @@ namespace Character
         {
             for (var i = 1; i < _stackNpcs.Count; ++i)
             {
-                var slopeAtPointI = CalculateSlopeAtX(i);
-                var slopeAngleDegree = Mathf.Rad2Deg * Mathf.Atan(slopeAtPointI);
-
                 var currentItem = _stackAnchors[i].transform;
                 var currentItemRotation = currentItem.localRotation.eulerAngles;
-                var t = 0.25f * i * _secondarySpeed * Time.fixedDeltaTime;
+                var t = i * _secondarySpeed * Time.fixedDeltaTime;
                 var targetAngle = Mathf.Lerp(0f, 45f, t);
                 currentItem.localRotation = Quaternion.Euler(targetAngle, currentItemRotation.y, currentItemRotation.z);
             }
-        }
-
-        private float CalculateSlopeAtX (int x)
-        {
-            return x < 1000 ? 1f / (2f * _squareRootCache[x]) : 1f / (2f * Mathf.Sqrt(x));
         }
 
         private GameObject GetNpcAtIndex(int index)
@@ -216,6 +225,8 @@ namespace Character
             _stackedNpcCount++;
 
             CalculateSpeedChange();
+            
+            OnStackChanged?.Invoke(_stackedNpcCount);
         }
 
         private void CalculateSpeedChange()
@@ -260,8 +271,12 @@ namespace Character
             
             // Set thrown NPC de-spawn timeout
             Destroy(newThrowNpc.gameObject, 5f);
+            
+            OnStackChanged?.Invoke(_stackedNpcCount);
         }
 
         public bool GetStackFull() => (_stackedNpcCount >= stackLimit);
     }
+    
+    #endregion
 }

@@ -5,6 +5,9 @@ namespace Character
 {
     public class Punch : MonoBehaviour
     {
+        
+        #region Properties
+        
         [SerializeField] private Transform punchOrigin;
 
         [SerializeField] private LayerMask npcMask;
@@ -13,9 +16,12 @@ namespace Character
         private Stack _stack;
 
         public static Action OnNpcPunched;
-
-        private Vector3 _punchBox = new Vector3(1.5f, 1.5f, 1.5f);
+        
         private static readonly int PunchTrigger = Animator.StringToHash("punch");
+        
+        #endregion
+        
+        #region Method
 
         private void Awake()
         {
@@ -34,17 +40,15 @@ namespace Character
             {
                 return;
             }
-            else
-            {
-                if (_stack.GetStackFull())
-                    return;
+
+            if (_stack.GetStackFull())
+                return;
                 
-                Destroy(results[0].gameObject);
-                _stack.AddNpc();
-                OnNpcPunched?.Invoke();
-            }
-            
-            
+            Destroy(results[0].gameObject);
+            _stack.AddNpc();
+            OnNpcPunched?.Invoke();
+
+
         }
 
         private void OnDrawGizmos()
@@ -52,5 +56,7 @@ namespace Character
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(punchOrigin.position, 1f);
         }
+        
+        #endregion
     }
 }
